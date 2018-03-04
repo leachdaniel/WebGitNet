@@ -4,4 +4,3 @@
 # Add special handling for common file types.
 *.cs     text diff=csharp
 *.sln    text merge=union eol=crlf
-*.csproj text merge=union
