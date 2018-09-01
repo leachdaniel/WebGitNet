@@ -1,10 +1,10 @@
 ﻿namespace WebGitNet.SearchProviders
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading.Tasks;
-    using WebGitNet.Search;
+    using System; 
+    using System.Collections.Generic; 
+    using System.Linq; 
+    using System.Threading.Tasks; 
+    using WebGitNet.Search; 
 
     public class PathSearchProvider : ISearchProvider
     {

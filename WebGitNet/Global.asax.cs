@@ -7,6 +7,12 @@
 
 namespace WebGitNet
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Specialized;
+    using System.IO;
+    using System.Threading;
+    using System.Web;
     using System.Web.Hosting;
     using System.Web.Mvc;
     using System.Web.Routing;
@@ -14,6 +20,7 @@ namespace WebGitNet
     using Castle.MicroKernel.SubSystems.Configuration;
     using Castle.Windsor;
     using Castle.Windsor.Installer;
+    using WebGitNet.AspNetImplmentations;
 
     public partial class WebGitNetApplication : System.Web.HttpApplication
     {
@@ -22,6 +29,26 @@ namespace WebGitNet
         public static void RegisterGlobalFilters(GlobalFilterCollection filters)
         {
             filters.Add(new HandleErrorAttribute());
+        }
+
+        public static HttpContextBase GetFakeHttpContext(string url)
+        {
+            if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
+            {
+                throw new ArgumentOutOfRangeException("url", "The URL must be a well-formed absolute URI.");
+            }
+
+            var request = new HttpRequest("~" + new Uri(url).AbsolutePath, url, null);
+            var response = new HttpResponse(new System.IO.StringWriter());
+
+            var fakeHttpContext = new HttpContext(request, response);
+
+            var fakeHttpContextWrapper = new HttpContextWrapper(fakeHttpContext);
+            //var httpContext = new MyHttpContext(request);
+            var routeData = RouteTable.Routes.GetRouteData(fakeHttpContextWrapper);
+
+            request.RequestContext = new RequestContext(fakeHttpContextWrapper, routeData);
+            return fakeHttpContextWrapper;
         }
 
         public static void RegisterRoutes(RouteCollection routes)
@@ -47,6 +74,7 @@ namespace WebGitNet
 
         protected void Application_Start()
         {
+         
             Bootstrap();
 
             AreaRegistration.RegisterAllAreas();
@@ -59,6 +87,47 @@ namespace WebGitNet
             ViewEngines.Engines.Add(new ResourceRazorViewEngine());
 
             HostingEnvironment.RegisterVirtualPathProvider(new ResourceVirtualPathProvider());
+        }
+
+        public static void TimerAction(object state)
+        {
+            //var result = ((IHttpAsyncHandler)this).BeginProcessRequest(GetFakeHttpContext("http://localhost:15594/"), TheAsyncCallback, new { asdf = 1 });
+            var context = GetFakeHttpContext("http://localhost:15594/");
+            //var parameters = new object[] { context, (AsyncCallback)TheAsyncCallback };
+
+            // var method = typeof(WebGitNetApplication).GetMethod("BeginProcessRequestNotification", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            try
+            {
+                var mvcHandler = new MyMvcHandler(context.Request.RequestContext);
+                
+                var result = mvcHandler.ExposedBeginProcessRequest(context, CreateAsyncCallback(mvcHandler), new object());                
+
+                Console.WriteLine(result.ToString());
+            }
+            catch (Exception ex) {
+                Console.WriteLine(ex.ToString());
+            }
+        }
+
+        public class MyMvcHandler : MvcHandler
+        {
+            public MyMvcHandler(RequestContext requestContext) : base(requestContext) { }
+            
+            public virtual IAsyncResult ExposedBeginProcessRequest(HttpContextBase httpContext, AsyncCallback callback, object state)
+            {
+                return base.BeginProcessRequest(httpContext, callback, state);
+            }
+
+            public virtual void ExposedEndProcessRequest(IAsyncResult asyncResult)
+            {
+                base.EndProcessRequest(asyncResult);
+            }
+        }
+
+        //private static Timer t = new Timer(TimerAction, null, 3000, 5000);
+        public static AsyncCallback CreateAsyncCallback(MyMvcHandler httpAsyncHandler)
+        {
+            return (IAsyncResult ar) => { httpAsyncHandler.ExposedEndProcessRequest(ar); Console.WriteLine(ar.IsCompleted); };
         }
 
         private static void Bootstrap()

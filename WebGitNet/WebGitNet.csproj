@@ -127,6 +127,10 @@
     <Compile Include="ActionResults\GitCommandResult.cs" />
     <Compile Include="ActionResults\GitFileResult.cs" />
     <Compile Include="ActionResults\GitStreamResult.cs" />
+    <Compile Include="AspNetImplmentations\Class1.cs" />
+    <Compile Include="AspNetImplmentations\MyHttpBrowserCapabilities.cs" />
+    <Compile Include="AspNetImplmentations\MyHttpContext.cs" />
+    <Compile Include="AspNetImplmentations\MyHttpRequest.cs" />
     <Compile Include="Controllers\BrowseController.cs" />
     <Compile Include="Controllers\FileController.cs" />
     <Compile Include="Controllers\GraphController.cs" />
