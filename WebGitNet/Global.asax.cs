@@ -42,6 +42,9 @@ namespace WebGitNet
             var response = new HttpResponse(new System.IO.StringWriter());
 
             var fakeHttpContext = new HttpContext(request, response);
+            HttpContext.Current = fakeHttpContext;
+            // use transient scope instead
+            
 
             var fakeHttpContextWrapper = new HttpContextWrapper(fakeHttpContext);
             //var httpContext = new MyHttpContext(request);
@@ -93,20 +96,26 @@ namespace WebGitNet
         {
             //var result = ((IHttpAsyncHandler)this).BeginProcessRequest(GetFakeHttpContext("http://localhost:15594/"), TheAsyncCallback, new { asdf = 1 });
             var context = GetFakeHttpContext("http://localhost:15594/");
-            //var parameters = new object[] { context, (AsyncCallback)TheAsyncCallback };
-
-            // var method = typeof(WebGitNetApplication).GetMethod("BeginProcessRequestNotification", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            try
+            // todo this might allow concurrent requests to share things in scope
+            // probably want to create own version of AspNetRequestScopeStorageProvider
+            using (System.Web.WebPages.Scope.ScopeStorage.CreateTransientScope(new System.Web.WebPages.Scope.ScopeStorageDictionary()))
             {
-                var mvcHandler = new MyMvcHandler(context.Request.RequestContext);
-                
-                var result = mvcHandler.ExposedBeginProcessRequest(context, CreateAsyncCallback(mvcHandler), new object());                
+                try
+                {
+                    var mvcHandler = new MyMvcHandler(context.Request.RequestContext);
 
-                Console.WriteLine(result.ToString());
+                    var result = mvcHandler.ExposedBeginProcessRequest(context, CreateAsyncCallback(mvcHandler), new object());
+
+                    Console.WriteLine(result.ToString());
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                }
             }
-            catch (Exception ex) {
-                Console.WriteLine(ex.ToString());
-            }
+                //var parameters = new object[] { context, (AsyncCallback)TheAsyncCallback };
+
+                // var method = typeof(WebGitNetApplication).GetMethod("BeginProcessRequestNotification", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         }
 
         public class MyMvcHandler : MvcHandler
@@ -124,7 +133,7 @@ namespace WebGitNet
             }
         }
 
-        //private static Timer t = new Timer(TimerAction, null, 3000, 5000);
+        private static Timer t = new Timer(TimerAction, null, 10000, Int32.MaxValue);
         public static AsyncCallback CreateAsyncCallback(MyMvcHandler httpAsyncHandler)
         {
             return (IAsyncResult ar) => { httpAsyncHandler.ExposedEndProcessRequest(ar); Console.WriteLine(ar.IsCompleted); };
@@ -161,5 +170,7 @@ namespace WebGitNet
                                           .LifestyleTransient());
             }
         }
+
+        private static readonly object _requestScopeKey = new object();
     }
 }

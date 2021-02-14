@@ -35,7 +35,7 @@ namespace WebGitNet.AspNetImplmentations
         public override DateTime Timestamp => _default.Timestamp;
         public override Exception Error => _default.Error;
         public override Exception[] AllErrors => _default.AllErrors;
-        public override HttpApplicationStateBase Application => new MyHttpApplicationState();
+        //public override HttpApplicationStateBase Application => new MyHttpApplicationState();
         public override HttpServerUtilityBase Server => new HttpServerUtilityWrapper(_default.Server);
         public override HttpSessionStateBase Session => new HttpSessionStateWrapper(_default.Session);
         public override IHttpHandler CurrentHandler => _default.CurrentHandler;
